@@ -29,6 +29,25 @@ export default function ChatPage() {
   const { toast } = useToast();
   const { user } = useUser();
 
+  useEffect(() => {
+    try {
+      const savedMessages = localStorage.getItem('fasto_chatHistory');
+      if (savedMessages) {
+        setMessages(JSON.parse(savedMessages));
+      }
+    } catch (error) {
+      console.error('Failed to load messages from localStorage:', error);
+    }
+  }, []);
+
+  useEffect(() => {
+    try {
+      localStorage.setItem('fasto_chatHistory', JSON.stringify(messages));
+    } catch (error) {
+      console.error('Failed to save messages to localStorage:', error);
+    }
+  }, [messages]);
+
   const scrollToBottom = useCallback(() => {
     messagesEndRef.current?.scrollIntoView({ behavior: 'smooth' });
   }, []);
@@ -55,8 +74,6 @@ export default function ChatPage() {
     setIsLoading(true);
 
     try {
-      // In a real app, you'd handle image uploads properly.
-      // For now, we are just sending the text.
       const aiResponse = await chatWithAi({ message: textToSend });
       const aiMessage: Message = {
         id: (Date.now() + 1).toString(),

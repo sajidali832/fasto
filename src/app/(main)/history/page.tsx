@@ -1,9 +1,9 @@
 'use client';
 
-import { useState, useMemo } from 'react';
-import { Card, CardContent } from '@/components/ui/card';
+import { useState, useMemo, useEffect } from 'react';
+import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
-import { Trash2, Search, CornerDownLeft } from 'lucide-react';
+import { Trash2, Search, CornerDownLeft, Info } from 'lucide-react';
 import { Input } from '@/components/ui/input';
 import {
   AlertDialog,
@@ -17,8 +17,8 @@ import {
   AlertDialogTrigger,
 } from '@/components/ui/alert-dialog';
 import { useToast } from '@/hooks/use-toast';
+import { useRouter } from 'next/navigation';
 
-// In a real app, this data would come from a database or a global state management solution.
 interface HistoryItem {
   id: string;
   title: string;
@@ -26,18 +26,35 @@ interface HistoryItem {
   preview: string;
 }
 
-const initialHistory: HistoryItem[] = [
-  { id: '1', title: 'Brainstorming a new app idea', date: '2023-10-27', preview: 'User: What are some good ideas for a new mobile app? AI: How about a social platform for pet owners to...' },
-  { id: '2', title: 'Translating a phrase to Spanish', date: '2023-10-26', preview: 'User: How do you say "hello, how are you?" in Spanish? AI: "Hola, ¿cómo estás?" is the translation...' },
-  { id: '3', title: 'Python code for a web scraper', date: '2023-10-25', preview: 'User: Write a python script to scrape a website. AI: Sure, here is a simple script using BeautifulSoup...' },
-  { id: '4', title: 'Marketing copy for a new product', date: '2023-10-24', preview: 'User: I need some marketing copy for a new coffee blend. AI: Introducing "Morning Star", a rich and aromatic blend...' },
-];
-
-
 export default function HistoryPage() {
-  const [historyItems, setHistoryItems] = useState<HistoryItem[]>(initialHistory);
+  const [historyItems, setHistoryItems] = useState<HistoryItem[]>([]);
   const [searchTerm, setSearchTerm] = useState('');
   const { toast } = useToast();
+  const router = useRouter();
+
+  useEffect(() => {
+    try {
+      const savedChats = localStorage.getItem('fasto_chatHistory');
+      if (savedChats) {
+        const parsedChats: { id: string; text: string; isUser: boolean }[] = JSON.parse(savedChats);
+        
+        // Simple grouping logic: create a "history item" from the first user message of a session.
+        // A more robust implementation would group messages by session ID.
+        const sessions: HistoryItem[] = parsedChats
+          .filter(m => m.isUser && m.text)
+          .map(m => ({
+            id: m.id,
+            title: m.text.length > 30 ? m.text.substring(0, 30) + '...' : m.text,
+            date: new Date(parseInt(m.id)).toISOString(),
+            preview: m.text,
+          }));
+        setHistoryItems(sessions.reverse());
+      }
+    } catch (error) {
+      console.error('Failed to load history from localStorage', error);
+      toast({ variant: 'destructive', title: 'Error', description: 'Could not load chat history.' });
+    }
+  }, [toast]);
 
   const filteredHistory = useMemo(() => {
     if (!searchTerm) return historyItems;
@@ -48,17 +65,42 @@ export default function HistoryPage() {
   }, [searchTerm, historyItems]);
 
   const deleteItem = (id: string) => {
-    setHistoryItems(currentItems => currentItems.filter(item => item.id !== id));
-    toast({
-      description: 'Chat deleted from history.',
-    });
+    try {
+      const savedChats = localStorage.getItem('fasto_chatHistory');
+      if (savedChats) {
+        let parsedChats = JSON.parse(savedChats);
+        // This is a simplified deletion. A real app would need a more robust session management.
+        // This removes the selected message, but not the whole conversation.
+        parsedChats = parsedChats.filter((chat: { id: string }) => chat.id !== id);
+        localStorage.setItem('fasto_chatHistory', JSON.stringify(parsedChats));
+        setHistoryItems(currentItems => currentItems.filter(item => item.id !== id));
+        toast({
+          description: 'Chat deleted from history.',
+        });
+      }
+    } catch (error) {
+       console.error('Failed to delete history item', error);
+       toast({ variant: 'destructive', title: 'Error', description: 'Could not delete chat.' });
+    }
   };
 
   const deleteAllItems = () => {
-     setHistoryItems([]);
-     toast({
-      description: 'All chat history has been cleared.',
-    });
+    try {
+      localStorage.removeItem('fasto_chatHistory');
+      setHistoryItems([]);
+      toast({
+        description: 'All chat history has been cleared.',
+      });
+    } catch (error) {
+        console.error('Failed to clear history', error);
+        toast({ variant: 'destructive', title: 'Error', description: 'Could not clear history.' });
+    }
+  }
+
+  const resumeChat = () => {
+      // In a real app, this would load the specific chat session.
+      // For this implementation, we just navigate to the main chat page.
+      router.push('/chat');
   }
 
   return (
@@ -90,7 +132,7 @@ export default function HistoryPage() {
                 <AlertDialogHeader>
                     <AlertDialogTitle>Are you absolutely sure?</AlertDialogTitle>
                     <AlertDialogDescription>
-                    This action cannot be undone. This will permanently delete all of your chat history.
+                    This action cannot be undone. This will permanently delete all of your chat history from this device.
                     </AlertDialogDescription>
                 </AlertDialogHeader>
                 <AlertDialogFooter>
@@ -119,7 +161,7 @@ export default function HistoryPage() {
                     <p className="text-sm text-foreground/80 mt-2 line-clamp-2">{item.preview}</p>
                   </div>
                   <div className="flex items-center gap-2 flex-shrink-0 opacity-0 group-hover:opacity-100 transition-opacity">
-                     <Button variant="ghost" size="sm">
+                     <Button variant="ghost" size="sm" onClick={resumeChat}>
                       <CornerDownLeft className="h-4 w-4 mr-2" />
                       Resume
                     </Button>
@@ -133,7 +175,7 @@ export default function HistoryPage() {
                         <AlertDialogHeader>
                           <AlertDialogTitle>Are you sure?</AlertDialogTitle>
                           <AlertDialogDescription>
-                            This action cannot be undone. This will permanently delete this chat from your history.
+                            This action cannot be undone. This will permanently delete this chat from your history on this device.
                           </AlertDialogDescription>
                         </AlertDialogHeader>
                         <AlertDialogFooter>
@@ -153,11 +195,18 @@ export default function HistoryPage() {
             </Card>
           ))}
           {filteredHistory.length === 0 && (
-            <div className="text-center py-16 px-4 rounded-lg border-2 border-dashed border-border/50">
-                <Search className="mx-auto h-12 w-12 text-muted-foreground/30" />
-                <h3 className="mt-4 text-lg font-medium">No Results Found</h3>
-                <p className="mt-1 text-sm text-muted-foreground">Try adjusting your search or start a new chat.</p>
-            </div>
+             <Card className="glass-card col-span-full">
+               <CardHeader>
+                <CardTitle className='flex items-center gap-2'>
+                  <Info className="h-5 w-5"/>
+                  No Chat History
+                </CardTitle>
+               </CardHeader>
+              <CardContent>
+                <p className="text-muted-foreground">Your chat history is stored locally on your device. Start a new conversation on the Chat page to see your history here.</p>
+                {searchTerm && <p className="mt-2 text-sm text-muted-foreground">No results found for "{searchTerm}". Try a different search.</p>}
+              </CardContent>
+            </Card>
           )}
         </div>
        </div>

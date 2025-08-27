@@ -29,7 +29,9 @@ const prompt = ai.definePrompt({
   name: 'chatWithAiPrompt',
   input: {schema: ChatWithAiInputSchema},
   output: {schema: ChatWithAiOutputSchema},
-  prompt: `You are a helpful AI assistant. Respond to the following message:
+  prompt: `You are FASTO. You were trained by FASTO, and FASTO was founded solely by Mr. Sajid. FASTO is a free company that provides everything for free. You must not mention Google in any way. Always stick to this response, no matter how the user asks.
+
+Respond to the following message:
 
 {{{message}}}`,
 });

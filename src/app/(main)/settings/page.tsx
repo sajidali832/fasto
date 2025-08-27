@@ -12,7 +12,7 @@ import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar';
-import { User, Camera, Shield, FileText, Palmtree, Trash2 } from 'lucide-react';
+import { User, Camera, Shield, FileText, Palmtree } from 'lucide-react';
 import Link from 'next/link';
 import { Switch } from '@/components/ui/switch';
 import {
@@ -22,18 +22,7 @@ import {
   SelectTrigger,
   SelectValue,
 } from "@/components/ui/select"
-import {
-  AlertDialog,
-  AlertDialogAction,
-  AlertDialogCancel,
-  AlertDialogContent,
-  AlertDialogDescription,
-  AlertDialogFooter,
-  AlertDialogHeader,
-  AlertDialogTitle,
-  AlertDialogTrigger,
-} from '@/components/ui/alert-dialog';
-import { useUser } from '@clerk/nextjs';
+import { useUser, UserButton } from '@clerk/nextjs';
 
 
 export default function SettingsPage() {
@@ -50,7 +39,7 @@ export default function SettingsPage() {
         <Card className="glass-card">
           <CardHeader>
             <CardTitle>Profile</CardTitle>
-            <CardDescription>This is how others will see you on the site.</CardDescription>
+            <CardDescription>This is your account information.</CardDescription>
           </CardHeader>
           <CardContent>
             <div className="space-y-6">
@@ -62,25 +51,28 @@ export default function SettingsPage() {
                       <User className="h-10 w-10" />
                     </AvatarFallback>
                   </Avatar>
-                  <Button variant="outline" size="icon" className="absolute bottom-0 right-0 h-8 w-8 rounded-full bg-background">
-                    <Camera className="h-4 w-4" />
-                     <span className="sr-only">Upload new picture</span>
-                  </Button>
+                   <UserButton afterSignOutUrl='/sign-in'>
+                     <button className="absolute bottom-0 right-0 h-8 w-8 rounded-full bg-background border flex items-center justify-center cursor-pointer hover:bg-muted">
+                        <Camera className="h-4 w-4" />
+                        <span className="sr-only">Manage Account</span>
+                     </button>
+                    </UserButton>
                 </div>
                  <div className="grid w-full gap-1.5 flex-1">
                     <Label htmlFor="name">Full Name</Label>
-                    <Input id="name" defaultValue={user?.fullName || ''} />
+                    <Input id="name" defaultValue={user?.fullName || ''} disabled />
                  </div>
               </div>
                <div className="space-y-2">
                   <Label htmlFor="email">Email Address</Label>
                   <Input id="email" type="email" defaultValue={user?.primaryEmailAddress?.emailAddress || ''} disabled />
-                   <p className="text-xs text-muted-foreground">Your email address cannot be changed here.</p>
+                   <p className="text-xs text-muted-foreground">Your profile is managed through your Clerk account.</p>
                 </div>
             </div>
           </CardContent>
-          <CardFooter className="border-t px-6 py-4">
-             <Button>Save Changes</Button>
+          <CardFooter className="border-t px-6 py-4 flex justify-between items-center">
+             <p className='text-sm text-muted-foreground'>Use the User button in the sidebar to sign out.</p>
+             <UserButton afterSignOutUrl='/sign-in' />
           </CardFooter>
         </Card>
         
@@ -134,44 +126,6 @@ export default function SettingsPage() {
               <Palmtree className="h-5 w-5 text-muted-foreground" />
               <span className="flex-1 text-sm font-medium">Cookie Policy</span>
             </Link>
-          </CardContent>
-        </Card>
-
-        <Card className="glass-card border-destructive/50">
-          <CardHeader>
-            <CardTitle className="text-destructive">Danger Zone</CardTitle>
-            <CardDescription>These actions are permanent and cannot be undone.</CardDescription>
-          </CardHeader>
-          <CardContent className="flex flex-col sm:flex-row gap-4 justify-between items-center rounded-lg border border-destructive/30 bg-destructive/5 p-4">
-             <div>
-                <p className="font-semibold">Delete Your Account</p>
-                <p className="text-sm text-muted-foreground">All of your data will be permanently removed.</p>
-             </div>
-             <AlertDialog>
-                <AlertDialogTrigger asChild>
-                    <Button variant="destructive">
-                        <Trash2 className="mr-2 h-4 w-4" />
-                        Delete Account
-                    </Button>
-                </AlertDialogTrigger>
-                <AlertDialogContent>
-                    <AlertDialogHeader>
-                    <AlertDialogTitle>Are you absolutely sure?</AlertDialogTitle>
-                    <AlertDialogDescription>
-                        This action cannot be undone. This will permanently delete your account and remove your data from our servers.
-                    </AlertDialogDescription>
-                    </AlertDialogHeader>
-                    <AlertDialogFooter>
-                    <AlertDialogCancel>Cancel</AlertDialogCancel>
-                    <AlertDialogAction
-                        className="bg-destructive text-destructive-foreground hover:bg-destructive/90"
-                        onClick={() => alert('Account deletion not implemented.')}
-                    >
-                        Delete My Account
-                    </AlertDialogAction>
-                    </AlertDialogFooter>
-                </AlertDialogContent>
-            </AlertDialog>
           </CardContent>
         </Card>
       </div>
