@@ -10,7 +10,7 @@ import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { Textarea } from '@/components/ui/textarea';
-import { Loader2, Copy, Check, ArrowLeft } from 'lucide-react';
+import { Loader2, Copy, Check, ArrowLeft, Bookmark } from 'lucide-react';
 import { useToast } from '@/hooks/use-toast';
 import { generateSocialMediaBios, GenerateSocialMediaBiosInput } from '@/ai/flows/generate-social-media-bios';
 import Link from 'next/link';
@@ -67,9 +67,36 @@ export default function GenerateBiosPage() {
       setTimeout(() => setHasCopied(false), 2000);
     }
   };
+  
+  const handleSave = () => {
+    if (!generatedBio) return;
+    try {
+      const savedItems = JSON.parse(localStorage.getItem('fasto_savedItems') || '[]');
+      const newItem = {
+        id: Date.now().toString(),
+        type: 'Bio',
+        title: `Bio for ${form.getValues('platform')}: ${form.getValues('topic')}`,
+        content: generatedBio,
+        date: new Date().toISOString(),
+        tags: ['bio', form.getValues('platform').toLowerCase(), ...form.getValues('keywords').split(',').map(k => k.trim())]
+      };
+      localStorage.setItem('fasto_savedItems', JSON.stringify([newItem, ...savedItems]));
+      toast({
+        title: 'Saved!',
+        description: 'Bio saved to your collection.',
+      });
+    } catch (error) {
+       console.error('Failed to save bio:', error);
+       toast({
+         variant: 'destructive',
+         title: 'Error',
+         description: 'Could not save bio.',
+       });
+    }
+  }
 
   return (
-    <div className="flex flex-1 flex-col p-4 md:p-6">
+    <div className="flex flex-1 flex-col p-4 md:p-6 overflow-y-auto">
       <div className="mx-auto w-full max-w-4xl space-y-8">
         <div className="flex items-center gap-4">
            <Link href="/tools" passHref>
@@ -97,7 +124,7 @@ export default function GenerateBiosPage() {
               </div>
 
                <div className="space-y-2">
-                <Label htmlFor="keywords">Keywords</Label>
+                <Label htmlFor="keywords">Keywords (comma-separated)</Label>
                 <Input id="keywords" placeholder="e.g., tech, art, frontend dev, innovator" {...form.register('keywords')} />
                  {form.formState.errors.keywords && <p className="text-sm text-destructive">{form.formState.errors.keywords.message}</p>}
               </div>
@@ -139,6 +166,18 @@ export default function GenerateBiosPage() {
           </CardContent>
         </Card>
 
+        {isLoading && (
+          <Card className="glass-card">
+            <CardHeader>
+              <CardTitle>Generating Bio...</CardTitle>
+              <CardDescription>The AI is crafting the perfect bio.</CardDescription>
+            </CardHeader>
+            <CardContent className="flex items-center justify-center p-12">
+               <Loader2 className="mr-2 h-8 w-8 animate-spin" />
+            </CardContent>
+          </Card>
+        )}
+
         {generatedBio && (
           <Card className="glass-card">
             <CardHeader className="flex flex-row items-center justify-between">
@@ -146,15 +185,20 @@ export default function GenerateBiosPage() {
                 <CardTitle>Generated Bio</CardTitle>
                 <CardDescription>Your new AI-powered bio is ready.</CardDescription>
               </div>
-              <Button variant="outline" size="icon" onClick={handleCopy}>
-                {hasCopied ? <Check className="h-4 w-4 text-green-500" /> : <Copy className="h-4 w-4" />}
-              </Button>
+              <div className="flex gap-2">
+                <Button variant="outline" size="icon" onClick={handleCopy}>
+                  {hasCopied ? <Check className="h-4 w-4 text-green-500" /> : <Copy className="h-4 w-4" />}
+                </Button>
+                 <Button variant="outline" size="icon" onClick={handleSave}>
+                  <Bookmark className="h-4 w-4" />
+                </Button>
+              </div>
             </CardHeader>
             <CardContent>
               <Textarea
                 value={generatedBio}
                 readOnly
-                className="h-40 w-full resize-none bg-secondary/30"
+                className="h-40 w-full resize-none bg-background"
               />
             </CardContent>
           </Card>

@@ -9,7 +9,7 @@ import { Card, CardContent, CardHeader, CardTitle, CardDescription } from '@/com
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { Textarea } from '@/components/ui/textarea';
-import { Loader2, Copy, Check, ArrowLeft } from 'lucide-react';
+import { Loader2, Copy, Check, ArrowLeft, Bookmark } from 'lucide-react';
 import { useToast } from '@/hooks/use-toast';
 import { generateProductDescription, GenerateProductDescriptionInput } from '@/ai/flows/generate-product-description';
 import Link from 'next/link';
@@ -67,8 +67,35 @@ export default function GenerateProductDescriptionPage() {
     }
   };
 
+  const handleSave = () => {
+    if (!generatedDescription) return;
+    try {
+      const savedItems = JSON.parse(localStorage.getItem('fasto_savedItems') || '[]');
+      const newItem = {
+        id: Date.now().toString(),
+        type: 'Product Description',
+        title: `Description for ${form.getValues('productName')}`,
+        content: generatedDescription,
+        date: new Date().toISOString(),
+        tags: ['product', 'ecommerce', form.getValues('productName')]
+      };
+      localStorage.setItem('fasto_savedItems', JSON.stringify([newItem, ...savedItems]));
+      toast({
+        title: 'Saved!',
+        description: 'Product description saved.',
+      });
+    } catch (error) {
+       console.error('Failed to save description:', error);
+       toast({
+         variant: 'destructive',
+         title: 'Error',
+         description: 'Could not save the description.',
+       });
+    }
+  };
+
   return (
-    <div className="flex flex-1 flex-col p-4 md:p-6">
+    <div className="flex flex-1 flex-col p-4 md:p-6 overflow-y-auto">
       <div className="mx-auto w-full max-w-4xl space-y-8">
         <div className="flex items-center gap-4">
           <Link href="/tools" passHref>
@@ -126,12 +153,10 @@ export default function GenerateProductDescriptionPage() {
            <Card className="glass-card">
             <CardHeader>
               <CardTitle>Generating Your Description...</CardTitle>
+               <CardDescription>The AI is finding the right words to sell your product.</CardDescription>
             </CardHeader>
-            <CardContent className="space-y-2">
-                <div className="h-4 w-1/4 animate-pulse rounded-md bg-secondary" />
-                <div className="h-4 w-3/4 animate-pulse rounded-md bg-secondary" />
-                <div className="h-4 w-full animate-pulse rounded-md bg-secondary" />
-                <div className="h-4 w-full animate-pulse rounded-md bg-secondary" />
+            <CardContent className="flex items-center justify-center p-12">
+               <Loader2 className="mr-2 h-8 w-8 animate-spin" />
             </CardContent>
           </Card>
         )}
@@ -143,15 +168,20 @@ export default function GenerateProductDescriptionPage() {
                 <CardTitle>Generated Description</CardTitle>
                 <CardDescription>Your new product description is ready.</CardDescription>
               </div>
-              <Button variant="outline" size="icon" onClick={handleCopy}>
-                {hasCopied ? <Check className="h-4 w-4 text-green-500" /> : <Copy className="h-4 w-4" />}
-              </Button>
+              <div className="flex gap-2">
+                <Button variant="outline" size="icon" onClick={handleCopy}>
+                  {hasCopied ? <Check className="h-4 w-4 text-green-500" /> : <Copy className="h-4 w-4" />}
+                </Button>
+                 <Button variant="outline" size="icon" onClick={handleSave}>
+                  <Bookmark className="h-4 w-4" />
+                </Button>
+              </div>
             </CardHeader>
             <CardContent>
               <Textarea
                 value={generatedDescription}
                 readOnly
-                className="h-64 w-full resize-none bg-secondary/30"
+                className="h-64 w-full resize-none bg-background"
               />
             </CardContent>
           </Card>

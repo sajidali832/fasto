@@ -9,7 +9,7 @@ import { Card, CardContent, CardHeader, CardTitle, CardDescription } from '@/com
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { Textarea } from '@/components/ui/textarea';
-import { Loader2, Copy, Check, ArrowLeft } from 'lucide-react';
+import { Loader2, Copy, Check, ArrowLeft, Bookmark } from 'lucide-react';
 import { useToast } from '@/hooks/use-toast';
 import { generatePodcastScript, GeneratePodcastScriptInput } from '@/ai/flows/generate-podcast-script';
 import Link from 'next/link';
@@ -67,8 +67,35 @@ export default function GeneratePodcastScriptPage() {
     }
   };
 
+  const handleSave = () => {
+    if (!generatedScript) return;
+    try {
+      const savedItems = JSON.parse(localStorage.getItem('fasto_savedItems') || '[]');
+      const newItem = {
+        id: Date.now().toString(),
+        type: 'Podcast Script',
+        title: `Podcast: ${form.getValues('topic')}`,
+        content: generatedScript,
+        date: new Date().toISOString(),
+        tags: ['podcast', 'script', form.getValues('tone').toLowerCase()]
+      };
+      localStorage.setItem('fasto_savedItems', JSON.stringify([newItem, ...savedItems]));
+      toast({
+        title: 'Saved!',
+        description: 'Podcast script saved to your collection.',
+      });
+    } catch (error) {
+       console.error('Failed to save script:', error);
+       toast({
+         variant: 'destructive',
+         title: 'Error',
+         description: 'Could not save the script.',
+       });
+    }
+  };
+
   return (
-    <div className="flex flex-1 flex-col p-4 md:p-6">
+    <div className="flex flex-1 flex-col p-4 md:p-6 overflow-y-auto">
       <div className="mx-auto w-full max-w-4xl space-y-8">
         <div className="flex items-center gap-4">
           <Link href="/tools" passHref>
@@ -102,7 +129,7 @@ export default function GeneratePodcastScriptPage() {
                   {form.formState.errors.duration && <p className="text-sm text-destructive">{form.formState.errors.duration.message}</p>}
                 </div>
                 <div className="space-y-2">
-                  <Label htmlFor="hosts">Hosts</Label>
+                  <Label htmlFor="hosts">Hosts (comma-separated)</Label>
                   <Input id="hosts" placeholder="e.g., Sarah, Mike" {...form.register('hosts')} />
                   {form.formState.errors.hosts && <p className="text-sm text-destructive">{form.formState.errors.hosts.message}</p>}
                 </div>
@@ -125,12 +152,10 @@ export default function GeneratePodcastScriptPage() {
            <Card className="glass-card">
             <CardHeader>
               <CardTitle>Generating Your Script...</CardTitle>
+              <CardDescription>The AI is scripting your next episode.</CardDescription>
             </CardHeader>
-            <CardContent className="space-y-2">
-                <div className="h-4 w-1/4 animate-pulse rounded-md bg-secondary" />
-                <div className="h-4 w-3/4 animate-pulse rounded-md bg-secondary" />
-                <div className="h-4 w-full animate-pulse rounded-md bg-secondary" />
-                <div className="h-4 w-full animate-pulse rounded-md bg-secondary" />
+            <CardContent className="flex items-center justify-center p-12">
+               <Loader2 className="mr-2 h-8 w-8 animate-spin" />
             </CardContent>
           </Card>
         )}
@@ -142,15 +167,20 @@ export default function GeneratePodcastScriptPage() {
                 <CardTitle>Generated Script</CardTitle>
                 <CardDescription>Your new podcast script is ready.</CardDescription>
               </div>
-              <Button variant="outline" size="icon" onClick={handleCopy}>
-                {hasCopied ? <Check className="h-4 w-4 text-green-500" /> : <Copy className="h-4 w-4" />}
-              </Button>
+              <div className="flex gap-2">
+                <Button variant="outline" size="icon" onClick={handleCopy}>
+                  {hasCopied ? <Check className="h-4 w-4 text-green-500" /> : <Copy className="h-4 w-4" />}
+                </Button>
+                 <Button variant="outline" size="icon" onClick={handleSave}>
+                  <Bookmark className="h-4 w-4" />
+                </Button>
+              </div>
             </CardHeader>
             <CardContent>
               <Textarea
                 value={generatedScript}
                 readOnly
-                className="h-96 w-full resize-none bg-secondary/30"
+                className="h-96 w-full resize-none bg-background"
               />
             </CardContent>
           </Card>

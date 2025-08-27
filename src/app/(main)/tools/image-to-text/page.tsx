@@ -4,7 +4,7 @@ import { useState, useRef } from 'react';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from '@/components/ui/card';
 import { Textarea } from '@/components/ui/textarea';
-import { Loader2, Copy, Check, Image as ImageIcon, Upload, ArrowLeft } from 'lucide-react';
+import { Loader2, Copy, Check, Image as ImageIcon, Upload, ArrowLeft, Bookmark } from 'lucide-react';
 import { useToast } from '@/hooks/use-toast';
 import { imageToText, ImageToTextInput } from '@/ai/flows/image-to-text';
 import Image from 'next/image';
@@ -69,11 +69,38 @@ export default function ImageToTextPage() {
       setTimeout(() => setHasCopied(false), 2000);
     }
   };
+
+  const handleSave = () => {
+    if (!extractedText) return;
+    try {
+      const savedItems = JSON.parse(localStorage.getItem('fasto_savedItems') || '[]');
+      const newItem = {
+        id: Date.now().toString(),
+        type: 'Image-to-Text',
+        title: `Text from Image uploaded on ${new Date().toLocaleDateString()}`,
+        content: extractedText,
+        date: new Date().toISOString(),
+        tags: ['image-to-text', 'ocr']
+      };
+      localStorage.setItem('fasto_savedItems', JSON.stringify([newItem, ...savedItems]));
+      toast({
+        title: 'Saved!',
+        description: 'Extracted text saved to your collection.',
+      });
+    } catch (error) {
+       console.error('Failed to save text:', error);
+       toast({
+         variant: 'destructive',
+         title: 'Error',
+         description: 'Could not save the extracted text.',
+       });
+    }
+  };
   
   const triggerFileSelect = () => fileInputRef.current?.click();
 
   return (
-    <div className="flex flex-1 flex-col p-4 md:p-6">
+    <div className="flex flex-1 flex-col p-4 md:p-6 overflow-y-auto">
       <div className="mx-auto w-full max-w-4xl space-y-8">
         <div className="flex items-center gap-4">
           <Link href="/tools" passHref>
@@ -105,7 +132,7 @@ export default function ImageToTextPage() {
                 className="hidden"
               />
               {imagePreview ? (
-                 <Image src={imagePreview} alt="Selected preview" layout="fill" objectFit="contain" className="rounded-lg" />
+                 <Image src={imagePreview} alt="Selected preview" fill={true} style={{objectFit:"contain"}} className="rounded-lg p-2" />
               ) : (
                 <div className="text-center">
                   <ImageIcon className="mx-auto h-12 w-12 text-muted-foreground" />
@@ -132,22 +159,27 @@ export default function ImageToTextPage() {
                 <CardTitle>Extracted Text</CardTitle>
                 <CardDescription>The text from your image is ready.</CardDescription>
               </div>
-              <Button variant="outline" size="icon" onClick={handleCopy} disabled={!extractedText || isLoading}>
-                {hasCopied ? <Check className="h-4 w-4 text-green-500" /> : <Copy className="h-4 w-4" />}
-              </Button>
+              <div className='flex gap-2'>
+                <Button variant="outline" size="icon" onClick={handleCopy} disabled={!extractedText || isLoading}>
+                  {hasCopied ? <Check className="h-4 w-4 text-green-500" /> : <Copy className="h-4 w-4" />}
+                </Button>
+                <Button variant="outline" size="icon" onClick={handleSave} disabled={!extractedText || isLoading}>
+                  <Bookmark className="h-4 w-4" />
+                </Button>
+              </div>
             </CardHeader>
             <CardContent>
                {isLoading ? (
                 <div className="space-y-2">
-                  <div className="h-4 w-full animate-pulse rounded-md bg-secondary" />
-                  <div className="h-4 w-3/4 animate-pulse rounded-md bg-secondary" />
-                  <div className="h-4 w-full animate-pulse rounded-md bg-secondary" />
+                  <div className="h-4 w-full animate-pulse rounded-md bg-muted" />
+                  <div className="h-4 w-3/4 animate-pulse rounded-md bg-muted" />
+                  <div className="h-4 w-full animate-pulse rounded-md bg-muted" />
                 </div>
                ) : (
                   <Textarea
                     value={extractedText}
                     readOnly
-                    className="h-64 w-full resize-none bg-secondary/30"
+                    className="h-64 w-full resize-none bg-background"
                     placeholder="No text could be extracted from the image."
                   />
                )}

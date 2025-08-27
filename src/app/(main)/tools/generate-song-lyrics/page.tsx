@@ -10,7 +10,7 @@ import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { Textarea } from '@/components/ui/textarea';
-import { Loader2, Copy, Check, ArrowLeft } from 'lucide-react';
+import { Loader2, Copy, Check, ArrowLeft, Bookmark } from 'lucide-react';
 import { useToast } from '@/hooks/use-toast';
 import { generateSongLyrics, GenerateSongLyricsInput } from '@/ai/flows/generate-song-lyrics';
 import Link from 'next/link';
@@ -68,8 +68,35 @@ export default function GenerateSongLyricsPage() {
     }
   };
 
+  const handleSave = () => {
+    if (!generatedLyrics) return;
+    try {
+      const savedItems = JSON.parse(localStorage.getItem('fasto_savedItems') || '[]');
+      const newItem = {
+        id: Date.now().toString(),
+        type: 'Lyrics',
+        title: `Lyrics for ${form.getValues('genre')} song: ${form.getValues('topic')}`,
+        content: generatedLyrics,
+        date: new Date().toISOString(),
+        tags: ['lyrics', form.getValues('genre').toLowerCase(), form.getValues('mood').toLowerCase()]
+      };
+      localStorage.setItem('fasto_savedItems', JSON.stringify([newItem, ...savedItems]));
+      toast({
+        title: 'Saved!',
+        description: 'Lyrics saved to your collection.',
+      });
+    } catch (error) {
+       console.error('Failed to save lyrics:', error);
+       toast({
+         variant: 'destructive',
+         title: 'Error',
+         description: 'Could not save the lyrics.',
+       });
+    }
+  };
+
   return (
-    <div className="flex flex-1 flex-col p-4 md:p-6">
+    <div className="flex flex-1 flex-col p-4 md:p-6 overflow-y-auto">
       <div className="mx-auto w-full max-w-4xl space-y-8">
         <div className="flex items-center gap-4">
           <Link href="/tools" passHref>
@@ -144,12 +171,10 @@ export default function GenerateSongLyricsPage() {
            <Card className="glass-card">
             <CardHeader>
               <CardTitle>Generating Your Lyrics...</CardTitle>
+              <CardDescription>The AI is writing a masterpiece.</CardDescription>
             </CardHeader>
-            <CardContent className="space-y-2">
-                <div className="h-4 w-1/4 animate-pulse rounded-md bg-secondary" />
-                <div className="h-4 w-3/4 animate-pulse rounded-md bg-secondary" />
-                <div className="h-4 w-full animate-pulse rounded-md bg-secondary" />
-                <div className="h-4 w-full animate-pulse rounded-md bg-secondary" />
+            <CardContent className="flex items-center justify-center p-12">
+               <Loader2 className="mr-2 h-8 w-8 animate-spin" />
             </CardContent>
           </Card>
         )}
@@ -161,15 +186,20 @@ export default function GenerateSongLyricsPage() {
                 <CardTitle>Generated Lyrics</CardTitle>
                 <CardDescription>Your AI-powered song is ready.</CardDescription>
               </div>
-              <Button variant="outline" size="icon" onClick={handleCopy}>
-                {hasCopied ? <Check className="h-4 w-4 text-green-500" /> : <Copy className="h-4 w-4" />}
-              </Button>
+              <div className="flex gap-2">
+                <Button variant="outline" size="icon" onClick={handleCopy}>
+                  {hasCopied ? <Check className="h-4 w-4 text-green-500" /> : <Copy className="h-4 w-4" />}
+                </Button>
+                 <Button variant="outline" size="icon" onClick={handleSave}>
+                  <Bookmark className="h-4 w-4" />
+                </Button>
+              </div>
             </CardHeader>
             <CardContent>
               <Textarea
                 value={generatedLyrics}
                 readOnly
-                className="h-96 w-full resize-none bg-secondary/30"
+                className="h-96 w-full resize-none bg-background"
               />
             </CardContent>
           </Card>

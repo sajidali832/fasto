@@ -40,14 +40,14 @@ export default function ChatPage() {
     }
   }, []);
 
-  useEffect(() => {
+  const saveMessagesToLocalStorage = (messagesToSave: Message[]) => {
     try {
-      localStorage.setItem('fasto_chatHistory', JSON.stringify(messages));
+      localStorage.setItem('fasto_chatHistory', JSON.stringify(messagesToSave));
     } catch (error) {
       console.error('Failed to save messages to localStorage:', error);
     }
-  }, [messages]);
-
+  };
+  
   const scrollToBottom = useCallback(() => {
     messagesEndRef.current?.scrollIntoView({ behavior: 'smooth' });
   }, []);
@@ -66,8 +66,10 @@ export default function ChatPage() {
       isUser: true,
       image: imagePreview || undefined,
     };
-
-    setMessages(prev => [...prev, userMessage]);
+    
+    const updatedMessages = [...messages, userMessage];
+    setMessages(updatedMessages);
+    saveMessagesToLocalStorage(updatedMessages);
     setInput('');
     setImagePreview(null);
     setImageFile(null);
@@ -80,7 +82,11 @@ export default function ChatPage() {
         text: aiResponse.response,
         isUser: false,
       };
-      setMessages(prev => [...prev, aiMessage]);
+      setMessages(prev => {
+          const finalMessages = [...prev, aiMessage];
+          saveMessagesToLocalStorage(finalMessages);
+          return finalMessages;
+      });
     } catch (error) {
       console.error('AI chat error:', error);
       const errMessage: Message = {
@@ -88,7 +94,11 @@ export default function ChatPage() {
          text: 'Sorry, I encountered an error. Please try again.',
          isUser: false,
       }
-      setMessages(prev => [...prev, errMessage]);
+      setMessages(prev => {
+          const finalMessages = [...prev, errMessage];
+          saveMessagesToLocalStorage(finalMessages);
+          return finalMessages;
+      });
       toast({
         variant: 'destructive',
         title: 'Error',
