@@ -5,26 +5,21 @@ import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Card, CardContent } from '@/components/ui/card';
-import { Copy, Paperclip, Send, User, Sparkles, X, RefreshCw } from 'lucide-react';
+import { Copy, Send, User, Sparkles, RefreshCw } from 'lucide-react';
 import { chatWithAi } from '@/ai/flows/ai-chat';
 import { useToast } from '@/hooks/use-toast';
-import Image from 'next/image';
 import { useUser } from '@clerk/nextjs';
 
 interface Message {
   id: string;
   text: string;
   isUser: boolean;
-  image?: string;
 }
 
 export default function ChatPage() {
   const [messages, setMessages] = useState<Message[]>([]);
   const [input, setInput] = useState('');
   const [isLoading, setIsLoading] = useState(false);
-  const [imagePreview, setImagePreview] = useState<string | null>(null);
-  const [imageFile, setImageFile] = useState<File | null>(null);
-  const fileInputRef = useRef<HTMLInputElement>(null);
   const messagesEndRef = useRef<HTMLDivElement>(null);
   const { toast } = useToast();
   const { user } = useUser();
@@ -58,21 +53,18 @@ export default function ChatPage() {
 
   const handleSendMessage = async (messageText?: string) => {
     const textToSend = messageText || input.trim();
-    if (!textToSend && !imageFile) return;
+    if (!textToSend) return;
 
     const userMessage: Message = {
       id: Date.now().toString(),
       text: textToSend,
       isUser: true,
-      image: imagePreview || undefined,
     };
     
     const updatedMessages = [...messages, userMessage];
     setMessages(updatedMessages);
     saveMessagesToLocalStorage(updatedMessages);
     setInput('');
-    setImagePreview(null);
-    setImageFile(null);
     setIsLoading(true);
 
     try {
@@ -129,26 +121,6 @@ export default function ChatPage() {
     });
   };
 
-  const handleImageUpload = (event: React.ChangeEvent<HTMLInputElement>) => {
-    const file = event.target.files?.[0];
-    if (file) {
-      setImageFile(file);
-      const reader = new FileReader();
-      reader.onloadend = () => {
-        setImagePreview(reader.result as string);
-      };
-      reader.readAsDataURL(file);
-    }
-  };
-  
-  const removeImage = () => {
-    setImagePreview(null);
-    setImageFile(null);
-    if(fileInputRef.current) {
-        fileInputRef.current.value = '';
-    }
-  }
-
   const lastUserMessage = messages.filter(m => m.isUser).pop();
 
   return (
@@ -159,7 +131,7 @@ export default function ChatPage() {
              <div className="text-center p-8 rounded-lg mt-[20vh]">
                 <Sparkles className="mx-auto h-16 w-16 text-primary/30" strokeWidth={1.5} />
                 <h2 className="mt-4 text-2xl font-bold">Start a conversation</h2>
-                <p className="mt-2 text-muted-foreground">Ask me anything, or upload an image to begin.</p>
+                <p className="mt-2 text-muted-foreground">Ask me anything to begin.</p>
              </div>
           )}
           {messages.map((message) => (
@@ -170,11 +142,6 @@ export default function ChatPage() {
                 </Avatar>
               )}
               <div className={`group relative max-w-[85%] rounded-2xl px-4 py-3 shadow-sm ${message.isUser ? 'bg-primary text-primary-foreground rounded-br-none' : 'bg-background rounded-bl-none'}`}>
-                {message.image && (
-                  <div className="mb-2">
-                    <Image src={message.image} alt="uploaded content" width={200} height={200} className="rounded-lg" />
-                  </div>
-                )}
                 <p className="text-sm whitespace-pre-wrap">{message.text}</p>
                  
                 <div className="absolute -bottom-8 left-0 flex gap-1 opacity-0 group-hover:opacity-100 transition-opacity">
@@ -225,35 +192,17 @@ export default function ChatPage() {
         <div className="mx-auto max-w-3xl">
           <Card className="shadow-lg">
             <CardContent className="p-2">
-              {imagePreview && (
-                <div className="p-2 relative w-fit">
-                  <Image src={imagePreview} alt="Image preview" width={60} height={60} className="rounded-md" />
-                  <Button variant="destructive" size="icon" className="absolute -top-2 -right-2 h-6 w-6 rounded-full" onClick={removeImage}>
-                    <X className="h-4 w-4" />
-                  </Button>
-                </div>
-              )}
               <div className="relative flex items-center">
                 <Input
                   placeholder="Type your message..."
-                  className="flex-1 border-0 bg-transparent pr-20 focus-visible:ring-0 focus-visible:ring-offset-0"
+                  className="flex-1 border-0 bg-transparent pr-12 focus-visible:ring-0 focus-visible:ring-offset-0"
                   value={input}
                   onChange={(e) => setInput(e.target.value)}
                   onKeyDown={(e) => e.key === 'Enter' && !e.shiftKey && (e.preventDefault(), handleSendMessage())}
                   disabled={isLoading}
                 />
-                <input
-                  type="file"
-                  ref={fileInputRef}
-                  className="hidden"
-                  onChange={handleImageUpload}
-                  accept="image/*"
-                />
-                <div className="absolute right-1 top-1/2 -translate-y-1/2 flex items-center gap-1">
-                  <Button variant="ghost" size="icon" onClick={() => fileInputRef.current?.click()} disabled={isLoading}>
-                    <Paperclip className="h-5 w-5" />
-                  </Button>
-                  <Button size="icon" onClick={() => handleSendMessage()} disabled={isLoading || (!input.trim() && !imageFile)} className="rounded-full w-8 h-8">
+                <div className="absolute right-1 top-1/2 -translate-y-1/2 flex items-center">
+                  <Button size="icon" onClick={() => handleSendMessage()} disabled={isLoading || !input.trim()} className="rounded-full w-8 h-8">
                     <Send className="h-4 w-4" />
                   </Button>
                 </div>
